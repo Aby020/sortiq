@@ -1,65 +1,45 @@
-# SORTIQ — Task.md
+# SORTIQ — Active Sprint: Sub-Tasks 1.7 & 1.8 + Phase 1 Gate Verification
 
-## Project Metadata
-- **Project Name:** Sortiq (Intelligent Desktop File Management Platform)
-- **Directory:** `D:\Abilabs\Sortiq`
-- **Reference Project:** `D:\Abilabs\FileFlow-Reference` (READ-ONLY, DO NOT TOUCH)
-- **Current Phase:** Phase 1 — Repository Foundation, Dev Environment & Authentication Skeleton
-- **Active Task:** Task 1 — Repository Foundation & Core Service Skeletons
-
----
-
-## ⚠️ Phase 1 Critical Scope Boundaries
-**DO NOT IMPLEMENT:**
-- Duplicate detection, staged hashing, or partial hash pipelines.
-- File organization heuristics, suggestions, or user-defined rule engines.
-- Filesystem mutation operations (move, rename, delete, quarantine) or rollback journals.
-- Advanced storage analytics or full React views.
-- Any AI/LLM integration.
-- No business logic leakage from Phases 2–14.
+## Status: IN PROGRESS
+- [x] Sub-Task 1.1: Git Workspace & Layout
+- [x] Sub-Task 1.2: Tooling & pyproject.toml Baseline
+- [x] Sub-Task 1.3: Django Settings & Environment Setup
+- [x] Sub-Task 1.4: Django Control Plane & Authentication App
+- [x] Sub-Task 1.5: FastAPI Service Skeleton (`backend/service/`)
+- [x] Sub-Task 1.6: Developer PowerShell Scripts (`scripts/`)
+- [/] Sub-Task 1.7: CI/CD Pipeline (`.github/workflows/ci.yml`)
+- [/] Sub-Task 1.8: Frontend Workspace Setup (`frontend/`)
+- [/] Phase 1 Acceptance Gate Validation
 
 ---
 
-## Work Execution Protocol
-1. Work sequentially through Sub-Tasks 1.1 to 1.8.
-2. After completing each sub-task, run linting and tests to verify stability.
-3. Pause for verification after each sub-task before proceeding to the next.
-4. Keep inline `#` comments to a strict minimum (only for non-obvious edge cases).
-5. All paths, scripts, and commands must be native Windows/PowerShell compatible.
+## Active Task Requirements
 
----
+### Sub-Task 1.7: CI/CD Pipeline (`.github/workflows/ci.yml`)
+- Create GitHub Actions workflow triggered on `push` and `pull_request` against `main`.
+- Matrix test strategy:
+  - OS: `ubuntu-latest` and `windows-latest`
+  - Python: `3.11`
+- Pipeline Steps:
+  - Checkout repository.
+  - Install `uv`.
+  - Install dependencies via `uv sync --all-extras`.
+  - Run linting: `uv run ruff check backend` and `uv run ruff format --check backend`.
+  - Run type checking: `uv run mypy backend` (disallowing untyped definitions).
+  - Run test suite: `uv run pytest backend`.
 
-## Task 1 Breakdown
-
-### Sub-Task 1.1: Git Workspace & Layout
-- [ ] Initialize an independent Git repository in `D:\Abilabs\Sortiq` (no legacy FileFlow commits).
-- [ ] Build the canonical directory structure:
+### Sub-Task 1.8: Frontend Workspace Setup (`frontend/`)
+- Initialize Vite + React + TypeScript in `frontend/`.
+- Configure Tailwind CSS (`tailwind.config.ts`, `postcss.config.js`).
+- Include `framer-motion` (Motion) for future transitions/animations.
+- Create directory structure:
   ```text
-  Sortiq/
-  ├── backend/
-  │   ├── apps/
-  │   │   ├── __init__.py
-  │   │   └── authentication/
-  │   ├── config/
-  │   │   ├── __init__.py
-  │   │   ├── asgi.py
-  │   │   ├── settings/
-  │   │   │   ├── __init__.py
-  │   │   │   ├── base.py
-  │   │   │   ├── development.py
-  │   │   │   └── production.py
-  │   │   ├── urls.py
-  │   │   └── wsgi.py
-  │   ├── service/
-  │   │   ├── __init__.py
-  │   │   └── main.py
-  │   └── sortiq_fs/
-  │       └── __init__.py
-  ├── frontend/
-  ├── scripts/
-  ├── docs/
-  │   └── planning/
-  ├── .env.example
-  ├── .gitignore
-  ├── docker-compose.yml
-  └── pyproject.toml
+  frontend/src/
+  ├── assets/
+  ├── components/
+  │   └── ui/
+  ├── lib/
+  │   └── api.ts       # Axios/fetch client targeting localhost:8000 and localhost:8100
+  ├── types/
+  ├── App.tsx
+  └── main.tsx
