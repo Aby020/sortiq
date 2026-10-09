@@ -1,10 +1,49 @@
-import { useState } from 'react';
+import { Component, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { ScanCenter } from './features/scan-center/ScanCenter';
 import { DuplicatesView } from './features/duplicates/DuplicatesView';
 import { OperationsView } from './features/operations/OperationsView';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { Explore } from './features/explore/Explore';
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  message: string;
+}
+
+class ViewErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false, message: '' };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, message: error.message };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('View crashed:', error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.hasError) {
+      return this.props.children;
+    }
+    return (
+      <div role="alert" className="rounded-lg border border-red-800 bg-red-950/60 p-6">
+        <p className="text-sm font-semibold text-red-200">This view failed to load</p>
+        <p className="mt-1 text-xs text-red-400">
+          {this.state.message || 'An unexpected rendering error occurred.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => this.setState({ hasError: false, message: '' })}
+          className="mt-4 rounded-md border border-red-700 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+}
 
 export default function App() {
   const [tab, setTab] = useState('dashboard');
@@ -64,12 +103,14 @@ export default function App() {
       </nav>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        {tab === 'dashboard' && <Dashboard />}
-        {tab === 'scan' && <ScanCenter />}
-        {tab === 'duplicates' && <DuplicatesView />}
-        {tab === 'operations' && <OperationsView />}
-        {tab === 'explore' && <Explore />}
-        {tab === 'settings' && <SettingsPage />}
+        <ViewErrorBoundary key={tab}>
+          {tab === 'dashboard' && <Dashboard />}
+          {tab === 'scan' && <ScanCenter />}
+          {tab === 'duplicates' && <DuplicatesView />}
+          {tab === 'operations' && <OperationsView />}
+          {tab === 'explore' && <Explore />}
+          {tab === 'settings' && <SettingsPage />}
+        </ViewErrorBoundary>
       </main>
 
       <footer className="mx-auto max-w-6xl px-6 py-8 text-xs text-neutral-600 border-t border-neutral-900">
