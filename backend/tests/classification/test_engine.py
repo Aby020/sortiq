@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from django.test import TestCase
-
 from apps.catalog.classification.engine import (
     ClassificationEngine,
     ExtensionSignal,
     FilenameContextSignal,
     MimeSignal,
 )
-from apps.catalog.models import Category, File
-from apps.folders.models import Folder
+from apps.catalog.models import File
+from django.test import TestCase
 from tests.factories import FolderFactory
 
 

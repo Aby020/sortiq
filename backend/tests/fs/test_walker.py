@@ -26,7 +26,4 @@ def test_walk_non_recursive(tmp_path: Path) -> None:
     entries, stats = walk(str(tmp_path), recursive=False)
     assert stats.files == 1
     assert stats.directories == 1
-    assert all(
-        e.relative_path.count("/") == 0 or e.is_directory
-        for e in entries
-    )
+    assert all(e.relative_path.count("/") == 0 or e.is_directory for e in entries)

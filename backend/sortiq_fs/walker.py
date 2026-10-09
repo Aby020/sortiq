@@ -32,7 +32,9 @@ class WalkStats:
     errors: list[str] = field(default_factory=list)
 
 
-def iter_entries(root: str, *, recursive: bool = True, follow_symlinks: bool = False) -> Iterator[WalkEntry]:
+def iter_entries(
+    root: str, *, recursive: bool = True, follow_symlinks: bool = False
+) -> Iterator[WalkEntry]:
     stats = WalkStats()
     root = os.path.abspath(root)
 
@@ -87,7 +89,9 @@ def iter_entries(root: str, *, recursive: bool = True, follow_symlinks: bool = F
             )
 
 
-def walk(root: str, *, recursive: bool = True, follow_symlinks: bool = False) -> tuple[list[WalkEntry], WalkStats]:
+def walk(
+    root: str, *, recursive: bool = True, follow_symlinks: bool = False
+) -> tuple[list[WalkEntry], WalkStats]:
     entries = list(iter_entries(root, recursive=recursive, follow_symlinks=follow_symlinks))
     stats = WalkStats(
         files=sum(1 for e in entries if not e.is_directory),

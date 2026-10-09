@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from apps.duplicates.services import (
     group_by_size,
     group_full_sha,

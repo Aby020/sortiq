@@ -42,8 +42,7 @@ class Job(models.Model):
         db_table = "jobs_job"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(progress_percent__gte=0)
-                & models.Q(progress_percent__lte=100),
+                condition=models.Q(progress_percent__gte=0) & models.Q(progress_percent__lte=100),
                 name="job_progress_range",
             ),
         ]

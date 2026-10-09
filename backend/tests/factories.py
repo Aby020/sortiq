@@ -5,13 +5,13 @@ from __future__ import annotations
 import uuid
 
 import factory
+from apps.activity.models import Activity
 from apps.catalog.models import Category, File
 from apps.catalog.models_metadata import FileMetadata
 from apps.duplicates.models import DuplicateGroup, DuplicateMember
 from apps.folders.models import Folder
 from apps.jobs.models import Job
 from apps.rules.models import OrganizationRule
-from apps.activity.models import Activity
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

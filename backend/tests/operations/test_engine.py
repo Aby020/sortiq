@@ -81,9 +81,11 @@ class TestApply:
         src = tmp_path / "tmp.txt"
         src.write_text("x")
         entry = JournalEntry(
-            index=0, source=str(src), target=str(tmp_path / "t.txt"),
+            index=0,
+            source=str(src),
+            target=str(tmp_path / "t.txt"),
             action="delete",
-            status="running"
+            status="running",
         )
         with pytest.raises(NotImplementedError):
             _apply(entry)

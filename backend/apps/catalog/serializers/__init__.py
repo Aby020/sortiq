@@ -18,16 +18,38 @@ class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
         fields = (
-            "id", "folder", "relative_path", "canonical_path", "name",
-            "extension", "is_directory", "size_bytes", "mime_type",
-            "category", "sha256", "hash_stage", "first_seen_at",
-            "last_seen_at", "deleted_at",
+            "id",
+            "folder",
+            "relative_path",
+            "canonical_path",
+            "name",
+            "extension",
+            "is_directory",
+            "size_bytes",
+            "mime_type",
+            "category",
+            "sha256",
+            "hash_stage",
+            "first_seen_at",
+            "last_seen_at",
+            "deleted_at",
         )
         read_only_fields = (
-            "id", "folder", "relative_path", "canonical_path", "name",
-            "extension", "is_directory", "size_bytes", "mime_type",
-            "category", "sha256", "hash_stage", "first_seen_at",
-            "last_seen_at", "deleted_at",
+            "id",
+            "folder",
+            "relative_path",
+            "canonical_path",
+            "name",
+            "extension",
+            "is_directory",
+            "size_bytes",
+            "mime_type",
+            "category",
+            "sha256",
+            "hash_stage",
+            "first_seen_at",
+            "last_seen_at",
+            "deleted_at",
         )
 
 

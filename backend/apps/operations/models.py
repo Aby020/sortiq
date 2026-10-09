@@ -39,9 +39,7 @@ class Operation(models.Model):
 
 class OperationItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    operation = models.ForeignKey(
-        Operation, on_delete=models.CASCADE, related_name="items"
-    )
+    operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name="items")
     item_index = models.IntegerField()
     source_path = models.CharField(max_length=1024)
     target_path = models.CharField(max_length=1024)

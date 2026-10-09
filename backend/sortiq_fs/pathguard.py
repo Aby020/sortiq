@@ -17,9 +17,28 @@ class PathCheckResult:
 
 
 _WINDOWS_RESERVED = {
-    "con", "prn", "aux", "nul",
-    "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
-    "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+    "con",
+    "prn",
+    "aux",
+    "nul",
+    "com1",
+    "com2",
+    "com3",
+    "com4",
+    "com5",
+    "com6",
+    "com7",
+    "com8",
+    "com9",
+    "lpt1",
+    "lpt2",
+    "lpt3",
+    "lpt4",
+    "lpt5",
+    "lpt6",
+    "lpt7",
+    "lpt8",
+    "lpt9",
 }
 
 
@@ -108,5 +127,5 @@ def relative(root: str, target: str) -> str:
         return ""
     prefix = root_norm.rstrip("/")
     if target_norm.startswith(prefix + "/"):
-        return target_norm[len(prefix) + 1:]
-    return target_norm[len(prefix):]
+        return target_norm[len(prefix) + 1 :]
+    return target_norm[len(prefix) :]

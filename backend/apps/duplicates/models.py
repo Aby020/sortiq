@@ -28,9 +28,7 @@ class DuplicateGroup(models.Model):
 
 class DuplicateMember(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    group = models.ForeignKey(
-        DuplicateGroup, on_delete=models.CASCADE, related_name="members"
-    )
+    group = models.ForeignKey(DuplicateGroup, on_delete=models.CASCADE, related_name="members")
     file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="duplicate_memberships")
     is_keeper = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

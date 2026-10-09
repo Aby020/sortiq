@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-import uuid
-
 from django.test import TestCase
-from django.urls import reverse
 from rest_framework.test import APIClient
-
-from apps.catalog.models import File
-from apps.folders.models import Folder
 from tests.factories import FileFactory, FolderFactory, UserFactory
 
 

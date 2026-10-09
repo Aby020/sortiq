@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import PureWindowsPath, PurePosixPath
+from pathlib import PurePosixPath, PureWindowsPath
 
 
 def normalize_windows_path(path: str) -> str:

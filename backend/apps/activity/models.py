@@ -11,9 +11,7 @@ from apps.authentication.models import User
 
 class Activity(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="activities"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activities")
     event_type = models.CharField(max_length=128)
     description = models.TextField(blank=True)
     metadata = models.JSONField(default=dict)

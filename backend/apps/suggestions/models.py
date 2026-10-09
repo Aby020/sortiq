@@ -14,9 +14,7 @@ from apps.rules.models import OrganizationRule
 class OrganizationSuggestion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="suggestions")
-    file = models.ForeignKey(
-        File, on_delete=models.CASCADE, related_name="suggestions"
-    )
+    file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="suggestions")
     rule = models.ForeignKey(
         OrganizationRule,
         on_delete=models.SET_NULL,
@@ -42,8 +40,7 @@ class OrganizationSuggestion(models.Model):
         db_table = "suggestions_organization_suggestion"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(confidence__gte=0.0)
-                & models.Q(confidence__lte=1.0),
+                condition=models.Q(confidence__gte=0.0) & models.Q(confidence__lte=1.0),
                 name="suggestion_confidence_range",
             ),
         ]

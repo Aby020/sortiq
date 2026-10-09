@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+from apps.settings.serializers import SettingsSerializer
 from rest_framework import generics, permissions
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from apps.settings.serializers import SettingsSerializer
 
 
 class SettingsView(generics.GenericAPIView):
@@ -14,7 +13,6 @@ class SettingsView(generics.GenericAPIView):
     serializer_class = SettingsSerializer
 
     def get(self, request: Request) -> Response:
-        user = request.user
         data = {
             "max_upload_size": "100MB",
             "default_recursive": True,

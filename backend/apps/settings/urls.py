@@ -1,4 +1,5 @@
 """URLs for settings."""
+
 from __future__ import annotations
 
 from apps.settings.viewsets import SettingsView

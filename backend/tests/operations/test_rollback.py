@@ -15,9 +15,7 @@ from apps.operations.rollback import rollback_operation
 @pytest.mark.django_db
 class TestRollback:
     def test_rollback_restores_moved_file(self, tmp_path: Path) -> None:
-        user = User.objects.create_user(
-            username="rb", email="rb@test.local", password="p"
-        )
+        user = User.objects.create_user(username="rb", email="rb@test.local", password="p")
         src = tmp_path / "src.txt"
         src.write_text("content")
         dest = tmp_path / "dest.txt"
@@ -47,9 +45,7 @@ class TestRollback:
         assert op.items.count() == 1
 
     def test_rollback_preserves_failed_items_unchanged(self, tmp_path: Path) -> None:
-        user = User.objects.create_user(
-            username="rb2", email="rb2@test.local", password="p"
-        )
+        user = User.objects.create_user(username="rb2", email="rb2@test.local", password="p")
         src = tmp_path / "ok.txt"
         src.write_text("ok")
         plan = OperationPlan()

@@ -42,9 +42,11 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
             ).first()
 
             if existing is not None:
-                if (existing.size_bytes == entry.size_bytes
-                        and existing.mtime_ns == entry.mtime_ns
-                        and existing.inode_identity == entry.inode):
+                if (
+                    existing.size_bytes == entry.size_bytes
+                    and existing.mtime_ns == entry.mtime_ns
+                    and existing.inode_identity == entry.inode
+                ):
                     existing.last_seen_at = entry.mtime_ns
                     existing.save(update_fields=["last_seen_at"])
                     skipped += 1

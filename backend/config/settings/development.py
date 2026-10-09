@@ -40,7 +40,7 @@ structlog.configure(
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.format_exc_info,
-        structlog.processors.ConsoleRenderer(),
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),

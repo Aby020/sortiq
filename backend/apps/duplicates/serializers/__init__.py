@@ -19,7 +19,13 @@ class DuplicateGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = DuplicateGroup
         fields = (
-            "id", "size_bytes", "sha256", "member_count",
-            "reclaimable_bytes", "members", "created_at", "updated_at",
+            "id",
+            "size_bytes",
+            "sha256",
+            "member_count",
+            "reclaimable_bytes",
+            "members",
+            "created_at",
+            "updated_at",
         )
         read_only_fields = ("members",)

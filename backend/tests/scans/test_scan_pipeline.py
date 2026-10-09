@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+from apps.catalog.models import File
+from apps.jobs.models import Job
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.catalog.models import File
-from apps.folders.models import Folder
-from apps.jobs.models import Job
 from tests.factories import FolderFactory, JobFactory, UserFactory
 
 

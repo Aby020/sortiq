@@ -8,20 +8,32 @@ from apps.catalog.models import File
 
 
 class Signal(Protocol):
-    def evaluate(self, file: File) -> str | None:
-        ...
+    def evaluate(self, file: File) -> str | None: ...
 
 
 class ExtensionSignal:
     EXT_MAP = {
-        "pdf": "documents", "docx": "documents", "txt": "documents",
-        "jpg": "images", "png": "images", "gif": "images",
-        "mp4": "videos", "mkv": "videos",
-        "mp3": "audio", "wav": "audio",
-        "zip": "archives", "tar": "archives",
-        "py": "code-dev", "js": "code-dev", "ts": "code-dev",
-        "exe": "executables", "msi": "executables", "dmg": "executables",
-        "ini": "system-config", "cfg": "system-config", "yaml": "system-config",
+        "pdf": "documents",
+        "docx": "documents",
+        "txt": "documents",
+        "jpg": "images",
+        "png": "images",
+        "gif": "images",
+        "mp4": "videos",
+        "mkv": "videos",
+        "mp3": "audio",
+        "wav": "audio",
+        "zip": "archives",
+        "tar": "archives",
+        "py": "code-dev",
+        "js": "code-dev",
+        "ts": "code-dev",
+        "exe": "executables",
+        "msi": "executables",
+        "dmg": "executables",
+        "ini": "system-config",
+        "cfg": "system-config",
+        "yaml": "system-config",
     }
 
     def evaluate(self, file: File) -> str | None:
@@ -75,6 +87,7 @@ class ClassificationEngine:
     def apply(self, file: File) -> None:
         slug = self.classify(file)
         from apps.catalog.models import Category as CategoryModel
+
         category, _ = CategoryModel.objects.get_or_create(
             slug=slug,
             defaults={"name": slug.replace("-", " ").title(), "is_system": slug == "unclassified"},

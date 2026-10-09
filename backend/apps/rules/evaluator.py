@@ -1,4 +1,5 @@
 """Rule evaluator with conditions, priorities, dry-run."""
+
 from __future__ import annotations
 
 import re

@@ -106,9 +106,7 @@ def execute_plan(
     return metrics
 
 
-def _persist_journal(
-    journal: list[JournalEntry], path: str, user_id: str | None = None
-) -> None:
+def _persist_journal(journal: list[JournalEntry], path: str, user_id: str | None = None) -> None:
     from apps.operations.models import Operation, OperationItem
 
     executed = sum(1 for j in journal if j.status == "success")
