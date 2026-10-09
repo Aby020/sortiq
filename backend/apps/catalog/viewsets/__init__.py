@@ -5,7 +5,8 @@ from __future__ import annotations
 from django.db.models import QuerySet
 from rest_framework import filters, mixins, permissions, viewsets
 
-from apps.catalog.models import Category, File, FileMetadata
+from apps.catalog.models import Category, File
+from apps.catalog.models_metadata import FileMetadata
 from apps.catalog.serializers import (
     CategorySerializer,
     FileMetadataSerializer,

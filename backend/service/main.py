@@ -68,4 +68,6 @@ def internal_health(request: Request, _auth: None = Depends(require_service_toke
         "uptime": "running",
         "pid": os.getpid(),
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "sortiq-fastapi-v2",
+        "version": "0.2.0",
     }

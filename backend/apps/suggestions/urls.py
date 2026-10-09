@@ -1,7 +1,11 @@
-"""URLs for $app."""
-from django.urls import path, include
-from apps.$app.viewsets import $(echo $app | sed 's/./\U&/' | tr '[:lower:]' '[:upper:]')ViewSet
+"""URLs for suggestions."""
+from __future__ import annotations
+
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
+from apps.suggestions.viewsets import OrganizationSuggestionViewSet
+
 router = DefaultRouter()
-router.register(r'', $app)  # placeholder - real wire in config
+router.register(r'', OrganizationSuggestionViewSet, basename='suggestion')
 urlpatterns = [path("", include(router.urls))]

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.catalog.models import Category, File, FileMetadata
+from apps.catalog.models import Category, File
+from apps.catalog.models_metadata import FileMetadata
 
 
 class CategorySerializer(serializers.ModelSerializer):

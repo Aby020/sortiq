@@ -1,4 +1,4 @@
-# SORTIQ — Active Sprint: Phase 6 (Multi-Signal Classification) & Phase 7 (Complete REST API)
+# SORTIQ — Active Sprint: Phases 12, 13, 14 & Final Project Release (v1.0.0)
 
 ## Status: IN PROGRESS
 - [x] Phase 1: Repository Foundation, Dev Environment & Auth Skeleton
@@ -6,83 +6,81 @@
 - [x] Phase 3: Filesystem Engine (`sortiq_fs`)
 - [x] Phase 4: Folder Registration, Scanning Pipeline & React Scan Center
 - [x] Phase 5: Staged Duplicate Detection Engine, Resolution & UI
-- [/] Phase 6: Multi-Signal Classification Engine (`apps/catalog/classification/`)
-  - [ ] Sub-Task 6.1: Signal Registry & Evaluator Pipeline
-  - [ ] Sub-Task 6.2: Category Assignment & Deterministic Fallback
-  - [ ] Sub-Task 6.3: Classification Integration into Scan Pipeline
-  - [ ] Sub-Task 6.4: Classification Test Suite (`backend/tests/classification/`)
-- [/] Phase 7: Complete DRF API Surface & Security Hardening
-  - [ ] Sub-Task 7.1: Catalog & Files API (`/api/v1/files/`, `/api/v1/categories/`)
-  - [ ] Sub-Task 7.2: Rules & Suggestions API (`/api/v1/rules/`, `/api/v1/suggestions/`)
-  - [ ] Sub-Task 7.3: Operations & Audit History API (`/api/v1/operations/`, `/api/v1/activity/`)
-  - [ ] Sub-Task 7.4: User Preferences & System Settings API (`/api/v1/settings/`)
-  - [ ] Sub-Task 7.5: Global API Security, Pagination, Throttling & IDOR Tests
+- [x] Phase 6: Multi-Signal Classification Engine
+- [x] Phase 7: Complete DRF API Surface & Security Hardening
+- [x] Phase 8: Background Services & FastAPI Internal Execution Plane
+- [x] Phase 9: Safe Operations Engine (WAL Journal, Stat-Before-Act, Rollback)
+- [x] Phase 10: Suggestions, Rules & Automation Engine
+- [x] Phase 11: Comprehensive UI/UX Polish (10 Approved Screens)
+- [/] Phase 12: Security Hardening & Observability Review
+  - [ ] Sub-Task 12.1: Path Adversarial & Traversal Security Audit (`backend/tests/security/`)
+  - [ ] Sub-Task 12.2: Secret Leak & Dependency Audit Check
+  - [ ] Sub-Task 12.3: Structured Request Correlation & Observability (`structlog`)
+- [/] Phase 13: Comprehensive QA & Invariant Verification
+  - [ ] Sub-Task 13.1: Windows Path Semantics & Long Path Safety Verification
+  - [ ] Sub-Task 13.2: Concurrent Scan/Modification Collision Invariant Tests
+  - [ ] Sub-Task 13.3: Operations Journal Integrity & State Machine Invariants
+- [/] Phase 14: Production Packaging, Documentation & Release Sign-Off
+  - [ ] Sub-Task 14.1: Production Dockerfile & Multi-Stage Production Build
+  - [ ] Sub-Task 14.2: Comprehensive Architectural & Technical Documentation (`docs/` & `README.md`)
+        - `README.md`: High-level vision, architecture diagram, quickstart, engineering highlights.
+        - `docs/ARCHITECTURE.md`: Dual-plane Django/FastAPI model, Operations WAL engine, state machines.
+        - `docs/SECURITY.md`: PathGuard containment, stat-before-act, IDOR matrix, secret isolation.
+        - `docs/API.md`: Public REST API spec and internal service contract.
+  - [ ] Sub-Task 14.3: Final Release Tag & Working Tree Verification (v1.0.0)
 
 ---
 
 ## ⚠️ STRICT RULES & BOUNDARIES
 1. ZERO AI ATTRIBUTION: No `Co-Authored-By`, `Generated with Claude`, or any AI markers in commits, docstrings, or files.
-2. NO CODE COMMENTS: Avoid unnecessary `#` comments. Write self-explanatory Python/TypeScript with strict type safety.
-3. NO FAKE AI: Classification must be deterministic, multi-signal, and transparent. Do not call or simulate an LLM.
-4. STRICT IDOR PROTECTION: Every endpoint must scope queries to `request.user`. No user may see or mutate another user's files, folders, or operations.
+2. NO CODE COMMENTS: Avoid unnecessary `#` comments. Write self-documenting code.
+3. ABSOLUTE PORTFOLIO QUALITY: Documentation must be technically rigorous, explaining real engineering tradeoffs (Django vs FastAPI, WAL journaling, staged hashing, Windows reparse points).
 
 ---
 
 ## Active Task Requirements
 
-### Phase 6: Multi-Signal Classification Engine (`apps/catalog/classification/`)
-- Create modular signal extractors:
-  - `ExtensionSignal`: maps standard extensions to candidate categories.
-  - `MimeSignal`: leverages `filetype` and stdlib `mimetypes` to detect actual content type.
-  - `FilenameSignal`: detects keywords/patterns (e.g., `receipt`, `invoice`, `setup`, `test_`, `docker-compose`).
-  - `ContextSignal`: directory context clues (e.g. inside `node_modules`, `Downloads/Code`, `DCIM`).
-- Evaluator:
-  - `classify_file(file_entry: FileEntry | File) -> ClassificationResult`
-  - Returns `category_slug`, `confidence` (float 0.0 - 1.0), and `signals_used` (dict).
-  - Deterministic evaluation: if signals conflict or confidence < threshold (e.g., 0.5), assign category `unclassified`.
-- Celery Task Integration:
-  - Wire classification into `scan_folder_task` or run as batch task `classify_unclassified_files_task(folder_id)`.
-- Tests (`backend/tests/classification/test_classifier.py`):
-  - Test pure extension classification.
-  - Test MIME type override when extension is ambiguous or missing.
-  - Test unclassifiable files deterministically map to `unclassified` with low confidence.
+### Phase 12: Security Hardening & Observability
+- **Security Audit Test Suite (`backend/tests/security/test_security_audit.py`)**:
+  - Path traversal injection: `../../Windows/System32`, `C:..\secret.txt`, NUL byte injection (`file.txt\0.pdf`), reserved devices (`COM1`, `LPT1`).
+  - Cross-user folder access: Ensure User B cannot read or trigger scans on User A's folder.
+  - Token verification: Verify FastAPI `/internal/` rejects spoofed or missing service tokens.
+- **Correlation ID Middleware**:
+  - Ensure every incoming request attaches an `X-Request-ID` UUID to both response headers and `structlog` context.
 
 ---
 
-### Phase 7: Complete DRF API Surface (`backend/apps/`)
-Standardize all endpoints with DRF ViewSets, `PageNumberPagination` (default 50 items), filtering via `django-filters`, and strict `IsAuthenticated` permissions.
-
-1. **Files API (`apps/catalog/`)**:
-   - `GET /api/v1/files/`: List files with filters (`folder_id`, `category`, `extension`, `is_duplicate`, `search`).
-   - `GET /api/v1/files/<uuid>/`: File detail with metadata JSONB and duplicate group status.
-   - `GET /api/v1/categories/`: List all available categories with file counts.
-
-2. **Rules & Suggestions API (`apps/rules/`, `apps/suggestions/`)**:
-   - `GET /api/v1/rules/`, `POST`, `PATCH`, `DELETE`: Rule management with priority ordering.
-   - `POST /api/v1/rules/<uuid>/dry_run/`: Return list of file IDs that match rule conditions without changing anything.
-   - `GET /api/v1/suggestions/`: List active suggestions (filter by status `pending`).
-   - `POST /api/v1/suggestions/<uuid>/accept/`: Transitions suggestion to accepted and prepares an operation plan.
-   - `POST /api/v1/suggestions/<uuid>/dismiss/`: Mark suggestion as dismissed.
-
-3. **Operations & Activity API (`apps/operations/`, `apps/activity/`)**:
-   - `GET /api/v1/operations/`: List operations with status filter.
-   - `GET /api/v1/operations/<uuid>/`: Operation details with item-level ledger (`OperationItem`).
-   - `GET /api/v1/activity/`: Read-only audit log feed ordered by `created_at DESC`.
-
-4. **Settings API**:
-   - `GET /api/v1/settings/`, `PATCH /api/v1/settings/`: Get and update user preferences (e.g., default conflict policy, auto-scan interval).
-
-5. **Security & IDOR Tests (`backend/tests/api/`)**:
-   - Test that User A cannot read or modify User B's folders, files, duplicate groups, or operations.
-   - Verify pagination headers and consistent JSON error envelopes.
+### Phase 13: QA, Windows Path Semantics & Invariants
+- **Windows Path Edge-Case Suite (`backend/tests/fs/test_windows_paths.py`)**:
+  - Test drive letter normalization (`c:\` vs `C:/`).
+  - Test mixed slash normalization (`D:\Folder/subfolder\file.txt`).
+  - Test case insensitivity handling on Windows paths.
+- **Journal State Machine Verification**:
+  - Validate that operation states cannot transition illegally (e.g. `completed` -> `executing`).
+  - Ensure rollback operations strictly generate independent audit records.
 
 ---
 
-## Phase 6 & Phase 7 Acceptance Gate Checklist
-- [ ] Classifier deterministically categorizes files using multiple signals (extension, MIME, patterns).
-- [ ] Unknown files fallback to `unclassified` category.
-- [ ] All public endpoints (`/api/v1/files/`, `/categories/`, `/rules/`, `/suggestions/`, `/operations/`, `/activity/`, `/settings/`) are live and documented.
-- [ ] Querysets are strictly scoped to `request.user` (IDOR tests pass).
-- [ ] `pytest backend/tests/` passes with 0 failures.
+### Phase 14: Documentation & Production Packaging
+1. **Production Docker Configuration**:
+   - `Dockerfile.backend`: Multi-stage build for Django + Celery.
+   - `Dockerfile.service`: Lean async runtime for FastAPI.
+   - `Dockerfile.frontend`: Multi-stage build serving static assets via Nginx.
+2. **Technical Documentation**:
+   - `README.md`: Flagship project presentation with ASCII architecture diagram, tech stack breakdown, and quickstart commands (`bootstrap.ps1`, `dev.ps1`).
+   - `docs/ARCHITECTURE.md`: Deep dive into control plane vs execution plane, staged deduplication pipeline, WAL state machine, and PathGuard containment.
+   - `docs/SECURITY.md`: Defensive filesystem engineering, containment proofs, stat-before-act invariants, authentication, and authorization models.
+   - `docs/API.md`: Standardized endpoint documentation with request/response envelopes.
+3. **Repository Cleanliness Check**:
+   - Ensure `git status` is clean, all files pass `ruff`, frontend builds cleanly (`vite build`), and no credential leaks exist.
+
+---
+
+## Final Acceptance Gate (v1.0.0 Ready)
+- [ ] All security adversarial tests pass.
+- [ ] Windows path normalization tests pass.
+- [ ] Complete documentation package (`README.md`, `ARCHITECTURE.md`, `SECURITY.md`, `API.md`) is written and formatted.
+- [ ] Production Dockerfiles are present and valid.
 - [ ] `ruff check backend` passes with 0 errors.
-- [ ] ZERO AI attribution tags in any file or commit.
+- [ ] `npx vite build` in `frontend/` succeeds cleanly.
+- [ ] `git log` and codebase are 100% free of AI attribution markers.
