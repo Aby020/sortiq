@@ -31,6 +31,8 @@ Thumbs.db
 *.sqlite3
 *.sqlite
 db.sqlite3
+.pytest_cache/
+.ruff_cache/
 
 # Test & coverage
 .pytest_cache/
