@@ -35,7 +35,12 @@ urlpatterns = [
     path("health/", auth_views.health_view, name="health"),
 ]
 
-if settings.DEBUG:
-    urlpatterns.insert(0, path("__debug__/", include("debug_toolbar.urls")))
+if settings.DEBUG and "debug_toolbar" in getattr(settings, "INSTALLED_APPS", []):
+    try:
+        import debug_toolbar  # noqa: F401
+
+        urlpatterns.insert(0, path("__debug__/", include("debug_toolbar.urls")))
+    except ImportError:
+        pass
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

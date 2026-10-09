@@ -35,9 +35,7 @@ ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": env.db("DATABASE_URL", default="postgres://user:password@localhost:5432/sortiq")
-}
+DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 CACHES = {
