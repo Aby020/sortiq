@@ -1,17 +1,21 @@
-"""Celery scan task for catalog indexing."""
+"""Native FastAPI background jobs (replaces Celery shared tasks)."""
 
 from __future__ import annotations
 
-from celery import shared_task
-from sortiq_fs.walker import walk
+from concurrent.futures import ThreadPoolExecutor
+
+from django.utils import timezone
 
 from apps.catalog.models import File
 from apps.folders.models import Folder
 from apps.jobs.models import Job
 
+_executor = ThreadPoolExecutor(max_workers=4)
 
-@shared_task(bind=True, max_retries=3)
-def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
+
+def run_scan(folder_id: str, job_id: str) -> dict:
+    """Execute a filesystem scan synchronously in the FastAPI thread pool."""
+
     folder = Folder.objects.get(id=folder_id)
     job = Job.objects.get(id=job_id)
 
@@ -20,6 +24,8 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
     job.save(update_fields=["status", "stage_name"])
 
     scan_start = folder.last_scanned_at or folder.created_at
+
+    from sortiq_fs.walker import walk
 
     entries, stats = walk(
         folder.path, recursive=folder.recursive, follow_symlinks=folder.follow_symlinks
@@ -31,9 +37,8 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
     bytes_scanned = 0
 
     for entry in entries:
+        job.refresh_from_db(fields=["status"])
         if job.status == "cancelled":
-            job.status = "cancelled"
-            job.save(update_fields=["status"])
             return {"folder_id": folder_id, "status": "cancelled", "indexed": indexed}
 
         try:
@@ -51,14 +56,13 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
                     existing.save(update_fields=["last_seen_at"])
                     skipped += 1
                     continue
-                else:
-                    existing.size_bytes = entry.size_bytes
-                    existing.mtime_ns = entry.mtime_ns
-                    existing.ctime_ns = entry.ctime_ns
-                    existing.inode_identity = entry.inode
-                    existing.hash_stage = "none"
-                    existing.save()
-                    updated += 1
+                existing.size_bytes = entry.size_bytes
+                existing.mtime_ns = entry.mtime_ns
+                existing.ctime_ns = entry.ctime_ns
+                existing.inode_identity = entry.inode
+                existing.hash_stage = "none"
+                existing.save()
+                updated += 1
             else:
                 File.objects.create(
                     folder=folder,
@@ -77,15 +81,14 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
 
             bytes_scanned += entry.size_bytes
         except Exception:
-            pass
+            continue
 
-    # Soft-delete missing files
     missing = File.objects.filter(
         folder=folder, deleted_at__isnull=True, last_seen_at__lt=scan_start
     )
-    deleted = missing.update(deleted_at=__import__("django.utils.timezone").timezone.now())
+    deleted = missing.update(deleted_at=timezone.now())
 
-    folder.last_scanned_at = __import__("django.utils.timezone").timezone.now()
+    folder.last_scanned_at = timezone.now()
     folder.save(update_fields=["last_scanned_at"])
 
     job.status = "completed"
@@ -101,3 +104,29 @@ def scan_folder_task(self, folder_id: str, job_id: str) -> dict:
     job.save(update_fields=["status", "stage_name", "progress_percent", "metrics"])
 
     return {"folder_id": folder_id, "status": "completed", "indexed": indexed}
+
+
+def dispatch_scan(folder_id: str, job_id: str) -> None:
+    """Schedule a scan on the native background thread pool."""
+
+    _executor.submit(run_scan, folder_id, job_id)
+
+
+def maintenance() -> dict:
+    """Queue scans for folders stale for over 7 days."""
+
+    stale = Folder.objects.filter(
+        last_scanned_at__lt=timezone.now() - timezone.timedelta(days=7),
+        is_active=True,
+    )
+    queued = 0
+    for folder in stale[:10]:
+        job = Job.objects.create(
+            user=folder.user,
+            job_type="scan",
+            status="pending",
+            stage_name="queued_by_beat",
+        )
+        dispatch_scan(str(folder.id), str(job.id))
+        queued += 1
+    return {"stale_folders": stale.count(), "queued": queued}

@@ -4,15 +4,30 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 import structlog
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 logger = structlog.get_logger(__name__)
 
 INTERNAL_SERVICE_TOKEN = os.environ.get("INTERNAL_SERVICE_TOKEN", "change-me-in-production")
+
+
+def _setup_django() -> None:
+    """Configure Django ORM lazily so the execution plane can persist jobs."""
+
+    import sys
+
+    backend_dir = Path(__file__).resolve().parent.parent / "backend"
+    if str(backend_dir) not in sys.path:
+        sys.path.insert(0, str(backend_dir))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+    import django
+
+    django.setup()
 
 app = FastAPI(
     title="Sortiq Service",
@@ -57,6 +72,28 @@ def health() -> dict:
     return {
         "status": "ok",
         "service": "sortiq-fastapi",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/internal/scan-job")
+def internal_scan_job(
+    folder_id: str,
+    job_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    _auth: None = Depends(require_service_token),
+) -> dict:
+    """Dispatch a native background scan; replaces Celery shared_task."""
+
+    _setup_django()
+    from apps.catalog.tasks import dispatch_scan  # noqa: E402
+
+    background_tasks.add_task(dispatch_scan, folder_id, job_id)
+    return {
+        "status": "queued",
+        "folder_id": folder_id,
+        "job_id": job_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

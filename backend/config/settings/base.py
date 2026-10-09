@@ -40,16 +40,10 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "sortiq-local-cache",
     }
 }
-
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
 
 AUTH_USER_MODEL = "authentication.User"
 
