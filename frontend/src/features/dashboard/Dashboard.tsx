@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { UseQueryResult } from '@tanstack/react-query';
+
 
 export function Dashboard() {
   const storage = 0.42;
