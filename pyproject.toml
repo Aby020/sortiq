@@ -79,8 +79,5 @@ exclude_lines = [
 ]
 
 [tool.setuptools]
-packages = []
-
-[tool.setuptools.packages.find]
-where = ["backend"]
-include = ["apps*", "config*", "service*", "sortiq_fs*"]
+package-dir = { "" = "backend" }
+packages = ["apps", "config", "config.settings", "service", "sortiq_fs"]
