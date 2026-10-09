@@ -78,8 +78,16 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
     "corsheaders",
-    # Local
+    # Local bounded contexts
     "apps.authentication.apps.AuthenticationConfig",
+    "apps.folders.apps.FoldersConfig",
+    "apps.catalog.apps.CatalogConfig",
+    "apps.duplicates.apps.DuplicatesConfig",
+    "apps.rules.apps.RulesConfig",
+    "apps.suggestions.apps.SuggestionsConfig",
+    "apps.operations.apps.OperationsConfig",
+    "apps.jobs.apps.JobsConfig",
+    "apps.activity.apps.ActivityConfig",
 ]
 
 MIDDLEWARE = [
