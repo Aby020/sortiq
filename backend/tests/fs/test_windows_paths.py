@@ -8,7 +8,7 @@ from sortiq_fs.pathguard import normalize
 
 class WindowsPathTests(TestCase):
     def test_drive_case_insensitive(self) -> None:
-        self.assertEqual(normalize(r"c:\folder"), r"C:\folder")
+        self.assertEqual(normalize(r"c:\folder"), "C:/folder")
 
     def test_mixed_slashes(self) -> None:
         self.assertIn("/", normalize(r"D:\Folder/sub\file.txt"))
