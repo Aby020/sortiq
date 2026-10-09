@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -48,8 +49,12 @@ class TestStatBeforeAct:
     def test_fingerprint_changes_with_content(self, tmp_path: Path) -> None:
         f = tmp_path / "f.txt"
         f.write_text("a")
+        f.flush()
+        os.utime(str(f), ns=(1_000_000_000, 1_000_000_000))
         fp1 = _fingerprint(str(f))
-        f.write_text("b")
+        f.write_text("bb")
+        f.flush()
+        os.utime(str(f), ns=(2_000_000_000, 2_000_000_000))
         fp2 = _fingerprint(str(f))
         assert fp1 != fp2
 

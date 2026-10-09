@@ -58,6 +58,8 @@ def normalize(path: str) -> str:
             if parts:
                 parts.pop()
             continue
+        if len(segment) == 2 and segment[1] == ":":
+            segment = segment[0].upper() + ":"
         parts.append(segment)
     joined = "/".join(parts)
     return "/" + joined if absolute else joined
