@@ -77,7 +77,7 @@ def health_view(request):
 
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
+            cursor.execute("SELECT %s", (1,))
             checks["database"] = True
     except Exception:
         checks["database"] = False

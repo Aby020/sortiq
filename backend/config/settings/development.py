@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .base import *  # noqa: F401,F403; pylint: disable=unused-import,wildcard-import
 
-DEBUG = env.bool("DEBUG", default=True)
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
