@@ -164,6 +164,9 @@ def _log_stream(stream, source: str) -> None:
         logger.debug("[%s] %s", source, line.rstrip())
 
 
+from desktop_static import StaticServer
+
+
 def main() -> None:
     if not FRONTEND_DIST.exists() or not (FRONTEND_DIST / "index.html").exists():
         logger.error(
@@ -176,6 +179,7 @@ def main() -> None:
 
     django_port = _free_port(DJANGO_PORT)
     fastapi_port = _free_port(FASTAPI_PORT)
+    static_port = _free_port(8080)
 
     django_proc = _run_django(django_port)
     fastapi_proc = _run_fastapi(fastapi_port)
@@ -191,12 +195,29 @@ def main() -> None:
     if not _await_ready(fastapi_port):
         logger.error("Execution plane failed to start on port %s", fastapi_port)
 
+    # Serve the built React bundle with SPA fallback; /api and /service
+    # are reverse-proxied to the local planes so the UI works same-origin.
+    static_server = StaticServer(
+        dist_dir=FRONTEND_DIST,
+        port=static_port,
+        api_targets={
+            "/api/": f"http://127.0.0.1:{django_port}/api/",
+            "/service/": f"http://127.0.0.1:{fastapi_port}/",
+        },
+    )
+    static_server.start()
+    if not static_server.wait_ready():
+        logger.error("Static frontend server failed to start on port %s", static_port)
+        django_proc.terminate()
+        fastapi_proc.terminate()
+        sys.exit(1)
+
     import webview
 
     logger.info("Opening Sortiq desktop window")
     window = webview.create_window(
         title=f"{APP_NAME} {APP_VERSION}",
-        url=f"http://127.0.0.1:{django_port}/",
+        url=f"http://127.0.0.1:{static_port}/",
         width=1280,
         height=800,
         min_size=(960, 600),
@@ -204,6 +225,7 @@ def main() -> None:
     )
     webview.start(gui="winforms", private_mode=False)
 
+    static_server.stop()
     django_proc.terminate()
     fastapi_proc.terminate()
     try:
