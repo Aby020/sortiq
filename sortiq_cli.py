@@ -36,7 +36,7 @@ from rich import box
 # sortiq_fs modules (pure Python, no Django required for scanner)
 try:
     from sortiq_fs.pathguard import is_blacklisted, normalize, validate, PathCheckResult
-    from sortiq_fs.walker import iter_entries, WalkStats
+    from sortiq_fs.walker import iter_entries, WalkStats, WalkEntry
     from sortiq_fs.hasher import hash_file, PARTIAL_SIZE
     from sortiq_fs.metadata import extract
     from sortiq_fs.quarantine import safe_delete, quarantine_move
@@ -54,7 +54,78 @@ DB_DIR.mkdir(parents=True, exist_ok=True)
 console = Console(force_terminal=True, color_system="auto")
 
 # ------------------------------------------------------------------
-# PATH SANITIZATION & GUARD
+# IGNORE SETS & SYMLINK GUARD
+# ------------------------------------------------------------------
+IGNORE_DIRS = {"node_modules", ".git", ".venv", "venv", "__pycache__", "dist", "build", ".next", ".turbo", ".cache", ".claude-flow", ".claude"}
+
+
+def safe_is_dir(entry_path: str) -> bool:
+    """Check if path is a real directory, not a broken symlink/junction."""
+    try:
+        return os.path.isdir(entry_path) and not os.path.islink(entry_path)
+    except OSError:
+        return False
+
+
+def safe_is_symlink(entry_path: str) -> bool:
+    try:
+        return os.path.islink(entry_path)
+    except OSError:
+        return False
+
+
+def _fast_walk(root: str) -> Tuple[List[Any], WalkStats]:
+    """Optimized crawl: skips IGNORE_DIRS, skips broken symlinks quietly, no hash."""
+    stats = WalkStats()
+    root = os.path.abspath(root)
+    entries = []
+    try:
+        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+            # Prune ignored dirs immediately (in-place mutation)
+            dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS and d not in {".claude-flow",".claude"}]
+            for fname in filenames:
+                fpath = os.path.join(dirpath, fname)
+                # Skip broken / dangling symlinks quietly (no WinError 3 spam)
+                try:
+                    if safe_is_symlink(fpath):
+                        # If symlink and target missing, skip quietly
+                        if not os.path.exists(fpath) or not os.path.isfile(fpath):
+                            stats.skipped += 1
+                            continue
+                    rel = os.path.relpath(fpath, root).replace("\\", "/")
+                    stat = os.stat(fpath, follow_symlinks=False)
+                    entries.append(__import__("dataclasses").dataclass("WalkEntry",
+                        fields=[("absolute_path", str, ""), ("relative_path", str, ""), ("name", str, ""),
+                                ("is_directory", bool, False), ("size_bytes", int, 0), ("mtime_ns", int, 0),
+                                ("ctime_ns", int, 0), ("inode", str, ""), ("is_symlink", bool, False)]
+                    )(absolute_path=fpath, relative_path=rel, name=fname, is_directory=False,
+                      size_bytes=stat.st_size, mtime_ns=stat.st_mtime_ns, ctime_ns=stat.st_ctime_ns,
+                      inode=str(stat.st_ino), is_symlink=os.path.islink(fpath)))
+                    stats.files += 1
+                except (PermissionError, OSError):
+                    stats.skipped += 1
+                    continue
+            # Count directories from dirnames after prune
+            for dname in dirnames:
+                dpath = os.path.join(dirpath, dname)
+                try:
+                    # Skip broken directory junctions quietly
+                    if safe_is_symlink(dpath) and not os.path.exists(dpath):
+                        stats.skipped += 1
+                        continue
+                    entries.append(__import__("dataclasses").dataclass("WalkEntry",
+                        fields=[("absolute_path", str, ""), ("relative_path", str, ""), ("name", str, ""),
+                                ("is_directory", bool, False), ("size_bytes", int, 0), ("mtime_ns", int, 0),
+                                ("ctime_ns", int, 0), ("inode", str, ""), ("is_symlink", bool, False)]
+                    )(absolute_path=dpath, relative_path=os.path.relpath(dpath, root).replace("\\", "/"),
+                      name=dname, is_directory=True, size_bytes=0, mtime_ns=0, ctime_ns=0,
+                      inode="", is_symlink=os.path.islink(dpath)))
+                    stats.directories += 1
+                except (PermissionError, OSError):
+                    stats.skipped += 1
+    except Exception as exc:
+        stats.errors.append(str(exc))
+    return entries, stats
 # ------------------------------------------------------------------
 def sanitize_path(raw: str) -> str:
     """Strip quotes, expand ~ and %USERPROFILE%, resolve absolute."""
@@ -141,27 +212,19 @@ def init_db():
     conn.close()
 
 
-def insert_catalog_entries(folder_path: str, entries: List[Any], stats: WalkStats):
+def insert_catalog_entries_phase1(folder_path: str, entries: List[Any], stats: WalkStats):
+    """Phase 1: Metadata crawl — bulk insert stats + meta; NO hashing."""
     conn = sqlite3.connect(str(DB_PATH))
+    conn.execute("BEGIN")
     now_iso = datetime.now().isoformat()
     inserted = 0
-    updated = 0
     for entry in entries:
         try:
-            # Hash computation (direct, in-process)
-            sha = ""
-            partial = ""
-            stage = "none"
-            if not entry.is_directory:
-                try:
-                    h = hash_file(entry.absolute_path)
-                    sha = h.sha256
-                    partial = h.partial_hash
-                    stage = h.stage
-                except Exception:
-                    stage = "error"
             meta = extract(entry.absolute_path)
-            # Insert / update
+            # Skip broken symlinks / junctions safely
+            if safe_is_symlink(entry.absolute_path) and not safe_is_dir(entry.absolute_path):
+                stats.skipped += 1
+                continue
             conn.execute("""
                 INSERT INTO catalog_file
                 (folder_path, relative_path, canonical_path, name, extension,
@@ -177,35 +240,62 @@ def insert_catalog_entries(folder_path: str, entries: List[Any], stats: WalkStat
                 is_directory=excluded.is_directory,
                 is_symlink=excluded.is_symlink,
                 mime_type=excluded.mime_type,
-                sha256=excluded.sha256,
-                partial_hash=excluded.partial_hash,
-                hash_stage=excluded.hash_stage,
                 last_seen_at=excluded.last_seen_at
             """, (
-                folder_path,
-                entry.relative_path,
-                entry.absolute_path,
+                folder_path, entry.relative_path, entry.absolute_path,
                 entry.name,
                 meta.get("extension") or (entry.name.split(".")[-1].lower() if "." in entry.name else ""),
-                entry.size_bytes,
-                entry.mtime_ns,
-                entry.ctime_ns,
-                entry.inode,
+                entry.size_bytes, entry.mtime_ns, entry.ctime_ns, entry.inode,
                 1 if entry.is_directory else 0,
                 1 if entry.is_symlink else 0,
                 meta.get("mime_type") or "",
-                sha,
-                partial,
-                stage,
-                now_iso,
-                now_iso,
+                "", "", "none", now_iso, now_iso,
             ))
-            conn.commit()
             inserted += 1
         except Exception:
+            stats.skipped += 1
             continue
+    conn.execute("COMMIT")
     conn.close()
     return inserted, stats
+
+
+def insert_catalog_entries(folder_path: str, entries: List[Any], stats: WalkStats):
+    """Phase 1 wrapper (deprecated eager hashing kept for compatibility); delegates to phase1."""
+    return insert_catalog_entries_phase1(folder_path, entries, stats)
+
+
+def targeted_hash_phase2(folder_path: str):
+    """Phase 2: Compute SHA-256 ONLY for files with duplicate sizes."""
+    conn = sqlite3.connect(str(DB_PATH))
+    # Find size groups with count > 1 and size > 0
+    rows = conn.execute("""
+        SELECT size_bytes FROM catalog_file
+        WHERE folder_path=? AND is_directory=0 AND size_bytes>0
+        GROUP BY size_bytes HAVING COUNT(*) > 1
+    """, (folder_path,)).fetchall()
+    sizes_to_hash = {r[0] for r in rows}
+    if not sizes_to_hash:
+        conn.close()
+        return 0
+    # Select files matching those sizes
+    candidates = conn.execute("""
+        SELECT id, canonical_path FROM catalog_file
+        WHERE folder_path=? AND is_directory=0 AND size_bytes IN ({})
+    """.format(",".join("?"*len(sizes_to_hash))),
+    (folder_path,) + tuple(sizes_to_hash)).fetchall()
+    hashed = 0
+    for file_id, path in candidates:
+        try:
+            h = hash_file(path)
+            conn.execute("UPDATE catalog_file SET sha256=?, partial_hash=?, hash_stage=? WHERE id=?",
+                        (h.sha256, h.partial_hash, h.stage, file_id))
+            hashed += 1
+        except Exception:
+            pass
+    conn.execute("COMMIT")
+    conn.close()
+    return hashed
 
 
 def count_catalog_for(folder_path: str) -> Tuple[int, int, int, int]:
@@ -332,23 +422,7 @@ def run_scan_flow():
     console.print(f"\n[green]Scanning:[/green] [bold]{resolved}[/bold]  (in-process, direct to SQLite)")
     # Direct execution — call python catalog walker synchronously
     start = time.time()
-    # Use walker.walk directly (returns entries + stats)
-    from sortiq_fs.walker import walk
-    entries_list, stats_acc = walk(resolved, recursive=True, follow_symlinks=False)
-
-    # Re-collect via walker directly (synchronous)
-    start = time.time()
-    entries_list = []
-    stats_acc = WalkStats()
-    try:
-        for e in iter_entries(resolved, recursive=True, follow_symlinks=False):
-            entries_list.append(e)
-            if e.is_directory:
-                stats_acc.directories += 1
-            else:
-                stats_acc.files += 1
-    except Exception as exc:
-        stats_acc.errors.append(str(exc))
+    entries_list, stats_acc = _fast_walk(resolved)
 
     total_scanned = len(entries_list)
 
@@ -362,13 +436,18 @@ def run_scan_flow():
         TimeElapsedColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("Scanning directory...", total=total_scanned, start=True, files=0)
-        # Insert in batches for progress feedback
-        batch_size = 50
+        task1 = progress.add_task("[cyan]Phase 1: Metadata Crawl...[/cyan]", total=total_scanned, start=True, files=0)
+        # Bulk insert Phase 1 (metadata only, no hashing)
+        batch_size = 1000
         for i in range(0, total_scanned, batch_size):
             batch = entries_list[i:i+batch_size]
-            insert_catalog_entries(resolved, batch, stats_acc)
-            progress.update(task, advance=min(batch_size, total_scanned - i), files=min(i + batch_size, total_scanned))
+            insert_catalog_entries_phase1(resolved, batch, stats_acc)
+            progress.update(task1, advance=len(batch), files=min(i + batch_size, total_scanned))
+
+        task2 = progress.add_task("[green]Phase 2: Targeted Hash...[/green]", total=None, start=True, files=0)
+        # Phase 2: Targeted Hash
+        hashed_count = targeted_hash_phase2(resolved)
+        progress.update(task2, description=f"[green]Phase 2: Targeted Hash (hashed {hashed_count} files)[/green]")
 
     elapsed = time.time() - start
 
