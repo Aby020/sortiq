@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install uv
-      - run: uv sync
-      - run: uv run pytest backend/tests/
+      - run: uv pip install -r requirements.txt || uv pip install pytest rich send2trash filetype
+      - run: python -m pytest tests/
         env:
           DJANGO_SETTINGS_MODULE: config.settings.development
 
