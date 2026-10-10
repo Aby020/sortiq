@@ -1,39 +1,64 @@
 # Sortiq
 
-Sortiq is an intelligent desktop file management platform. It scans local folders, deduplicates files with a staged hashing pipeline, classifies content via a multi-signal engine, and executes safe, journaled organization plans that can be rolled back with full audit fidelity.
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+![Native Windows](https://img.shields.io/badge/OS-Windows-lightgrey)
+![MIT License](https://img.shields.io/badge/License-MIT-green)
+![SQLite Storage](https://img.shields.io/badge/Storage-SQLite-white)
+![No Telemetry](https://img.shields.io/badge/Telemetry-Zero-red)
 
-## Architecture
+Sortiq is an intelligent, secure, offline-first local file management and deduplication utility built for developer machines. It is designed to tame file chaos on massive local drives without requiring external servers, cloud connectivity, or intrusive background processes.
 
-Sortiq runs a **dual-plane** backend:
+By leveraging a high-performance, in-process Python scanner and a local SQLite database, Sortiq provides actionable insights into your storage layout, identifies duplicate structures with precision, and facilitates safe, non-destructive file cleanup operations directly from your terminal or desktop.
 
-- **Django + DRF** is the control plane (auth, REST API, persistence).
-- **FastAPI** is the internal execution plane (high-throughput scan streaming, batch hashing) protected by a shared service token.
-- **Celery + Redis** drives asynchronous scans and scheduled maintenance.
-- **sortiq_fs** is a pure-Python filesystem engine with path containment (`PathGuard`), staged hashing, and quarantine primitives that never delete data.
+## Key Features
 
-Every mutation flows through the **Operations Engine** — a WAL-journaled planner that verifies state *before* acting, persists each step, and rolls back by reversing journal entries while preserving audit history.
+*   **⚡ High-Speed Two-Phase Scanner**: Optimized to crawl massive local file trees while ignoring dev bloat (`node_modules`, `.git`, `venv`, `.next`, etc.) and safely auto-pruning broken junction points. It uses a metadata-first approach and computes SHA-256 hashes *only* for files with identical sizes, slashing scanning time.
+*   **🛡️ PathGuard System Protection**: Features robust, hardcoded safety blacklists guarding critical Windows directories (`C:\Windows`, `System32`, `Program Files`, AppData roots) to ensure operations never compromise system integrity.
+*   **♻️ Non-Destructive Cleanup**: Integrated with `send2trash` for Windows Recycle Bin routing and a Write-Ahead Log (WAL) system to ensure safe, undoable operations and immediate 1-click rollbacks.
+*   **💻 Modern Interactive TUI**: A native terminal interface powered by `rich`, featuring a styled, branded menu, live progress tracking, and intuitive dashboards for duplicate inspection.
+*   **🖥️ Optional Standalone Desktop GUI**: Fully packagable as a standalone Windows `.exe` using PyInstaller, functioning without browser coupling or network socket dependencies.
 
-## Quickstart
+## Visual Demo
 
+| Interactive Terminal Menu | Fast Scan Summary |
+| :---: | :---: |
+| ![Terminal Menu](docs/assets/cli_menu.png) | ![Scan Summary](docs/assets/cli_scan_summary.png) |
+
+*(Screenshots placeholder: Replace with your actual project screenshots.)*
+
+## Quick Start / Installation
+
+### Prerequisites
+*   Windows 10/11
+*   Python 3.10+
+*   `uv` or `pip`
+
+### Local Setup
 ```bash
-# Control plane
-cd backend
-uv sync --all-extras
-DJANGO_SETTINGS_MODULE=config.settings.base PYTHONPATH=backend python manage.py migrate
-DJANGO_SETTINGS_MODULE=config.settings.base PYTHONPATH=backend python manage.py runserver
+# Clone the repository
+git clone https://github.com/Aby020/sortiq.git
+cd sortiq
 
-# Internal execution plane
-uvicorn service.main:app --host 0.0.0.0 --port 8100
-
-# Frontend
-cd frontend && npm install && npm run build
+# Set up environment
+uv venv
+uv pip install -r requirements.txt
 ```
 
-## Engineering highlights
+### Launching the Interactive Terminal
+```bash
+uv run python sortiq_cli.py
+```
 
-- Staged duplicate detection: size grouping → partial hash (1 MiB) → full SHA-256
-- Multi-signal classification: extension, MIME, filename context, deterministic fallback
-- Stat-before-act: every operation verifies source state immediately before mutation
-- IDOR protection: every viewset scopes `get_queryset()` by `request.user`
-- Correlation IDs: `X-Request-ID` bound to structlog JSON context per request
-- Quarantine-only: the engine rejects `delete` actions (`NotImplementedError`)
+### Building Standalone Windows Executable
+```bash
+uv run pyinstaller sortiq.spec --noconfirm
+```
+
+## Architecture & Local Storage
+Sortiq follows a zero-server, in-process architecture. When running, the scanner interacts directly with the filesystem and manages cataloging locally at `%LOCALAPPDATA%\Sortiq\sortiq.db`. There is no background HTTP daemon, no Redis dependency, and zero telemetry data ever leaves your machine.
+
+## Safety & Guardrails
+All potentially destructive actions route through the Windows Recycle Bin. For operations outside the Recycle Bin capability, Sortiq maintains a local `.sortiq_quarantine` directory and journaling system, ensuring that permanent deletion is never performed by default.
+
+## License
+Distributed under the MIT License. See `LICENSE` for details.
