@@ -15,11 +15,12 @@ from apps.jobs.serializers import JobSerializer
 
 
 class JobViewSet(mixins.RetrieveModelMixin, GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = JobSerializer
 
     def get_queryset(self):
-        return Job.objects.filter(user=self.request.user)
+        from apps.core.services.desktop_scope import user_scope
+        return user_scope(self.request, Job.objects.all(), 'user')
 
     @action(detail=True, methods=["post"])
     def cancel(self, request: Request, pk: uuid.UUID) -> Response:

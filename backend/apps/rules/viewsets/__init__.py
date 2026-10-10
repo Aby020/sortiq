@@ -17,11 +17,13 @@ class OrganizationRuleViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = OrganizationRuleSerializer
 
     def get_queryset(self) -> QuerySet:
-        return OrganizationRule.objects.filter(user=self.request.user)
+        from apps.core.services.desktop_scope import user_scope
+        return user_scope(self.request, OrganizationRule.objects.all(), 'user')
 
     def perform_create(self, serializer) -> None:
-        serializer.save(user=self.request.user)
+        from apps.core.services.desktop_scope import effective_user
+        serializer.save(user=effective_user(self.request))

@@ -13,7 +13,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 
 logger = structlog.get_logger(__name__)
 
-INTERNAL_SERVICE_TOKEN = os.environ.get("INTERNAL_SERVICE_TOKEN", "change-me-in-production")
+INTERNAL_SERVICE_TOKEN = os.environ.get("INTERNAL_SERVICE_TOKEN", "local-desktop")
 
 
 def _setup_django() -> None:

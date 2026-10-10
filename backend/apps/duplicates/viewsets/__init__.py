@@ -13,7 +13,7 @@ from apps.duplicates.serializers import DuplicateGroupSerializer
 
 
 class DuplicateGroupViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = DuplicateGroupSerializer
     queryset = DuplicateGroup.objects.prefetch_related("members", "members__file")
 

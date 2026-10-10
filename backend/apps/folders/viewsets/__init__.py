@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -26,14 +26,15 @@ class FolderViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = FolderSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        return Folder.objects.filter(user=user).annotate(
-            _file_count=Count("files", filter=~Count("files__deleted_at", filter=None)),
-            _total_bytes=Sum("files__size_bytes"),
+        from apps.core.services.desktop_scope import user_scope
+        qs = user_scope(self.request, Folder.objects.all(), 'user')
+        return qs.annotate(
+            _file_count=Count('files', filter=Q(files__deleted_at__isnull=True)),
+            _total_bytes=Sum('files__size_bytes'),
         )
 
     def get_serializer_class(self):

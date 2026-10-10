@@ -16,7 +16,8 @@ from apps.catalog.serializers import (
 
 class UserScopedViewSetMixin:
     def get_queryset(self) -> QuerySet:
-        return self.queryset.filter(folder__user=self.request.user)
+        from apps.core.services.desktop_scope import user_scope
+        return user_scope(self.request, self.queryset.all(), 'folder__user')
 
 
 class CategoryViewSet(
@@ -24,11 +25,12 @@ class CategoryViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = CategorySerializer
 
     def get_queryset(self) -> QuerySet:
-        return Category.objects.filter(files__folder__user=self.request.user).distinct()
+        from apps.core.services.desktop_scope import user_scope
+        return user_scope(self.request, Category.objects.all(), 'files__folder__user').distinct()
 
 
 class FileViewSet(
@@ -37,7 +39,7 @@ class FileViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = FileSerializer
     queryset = File.objects.all()
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -58,7 +60,7 @@ class FileMetadataViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = FileMetadataSerializer
     queryset = FileMetadata.objects.all()
 

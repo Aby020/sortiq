@@ -14,8 +14,9 @@ class OperationViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = OperationSerializer
 
     def get_queryset(self) -> QuerySet:
-        return Operation.objects.filter(user=self.request.user)
+        from apps.core.services.desktop_scope import user_scope
+        return user_scope(self.request, Operation.objects.all(), 'user')

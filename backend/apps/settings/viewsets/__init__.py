@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 
 class SettingsView(generics.GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = SettingsSerializer
 
     def get(self, request: Request) -> Response:
