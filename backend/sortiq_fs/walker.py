@@ -2,13 +2,22 @@
 
 Emits dicts describing files and directories; never mutates the filesystem.
 Pure Python; no Django imports.
+
+Hardening: Windows ``PermissionError`` / ``OSError`` while stat-ing a
+locked or restricted entry is captured into ``WalkStats.errors`` so the
+scan thread never crashes on protected items.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Iterator
+
+from sortiq_fs.pathguard import is_blacklisted, normalize
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -30,6 +39,7 @@ class WalkStats:
     directories: int = 0
     symlinks: int = 0
     errors: list[str] = field(default_factory=list)
+    skipped: int = 0
 
 
 def iter_entries(
@@ -41,7 +51,8 @@ def iter_entries(
     try:
         entries = list(os.scandir(root))
     except OSError as exc:
-        stats.errors.append(str(exc))
+        stats.errors.append(f"{root}: {exc}")
+        logger.warning("cannot list directory %s: %s", root, exc)
         return
 
     for entry in entries:
@@ -53,11 +64,11 @@ def iter_entries(
             mtime_ns = stat.st_mtime_ns
             ctime_ns = stat.st_ctime_ns
             inode = str(stat.st_ino)
-        except OSError:
-            size = 0
-            mtime_ns = 0
-            ctime_ns = 0
-            inode = ""
+        except (PermissionError, OSError) as exc:
+            stats.skipped += 1
+            stats.errors.append(f"{entry.path}: {exc}")
+            logger.info("skipped inaccessible entry %s: %s", entry.path, exc)
+            continue
 
         absolute = os.path.abspath(entry.path)
         relative = os.path.relpath(absolute, root).replace("\\", "/")
@@ -82,6 +93,10 @@ def iter_entries(
         )
 
         if is_dir and recursive and not (is_symlink and not follow_symlinks):
+            if is_blacklisted(normalize(absolute)):
+                stats.skipped += 1
+                logger.info("skipped protected directory %s", absolute)
+                continue
             yield from iter_entries(
                 absolute,
                 recursive=recursive,

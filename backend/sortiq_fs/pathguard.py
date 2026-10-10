@@ -82,9 +82,39 @@ def is_within(root: str, candidate: str) -> bool:
     return cand_norm.startswith(root_norm.rstrip("/") + "/")
 
 
+WINDOWS_BLACKLIST = {
+    "C:/Windows",
+    "C:/Program Files",
+    "C:/Program Files (x86)",
+    "C:/ProgramData",
+    "C:/Windows/System32",
+    "C:/Users/All Users/AppData",
+    "C:/Windows/Temp",
+}
+
+
+def is_blacklisted(path: str) -> bool:
+    norm = normalize(path).rstrip("/").lower()
+    for banned in WINDOWS_BLACKLIST:
+        banned_norm = banned.rstrip("/").lower()
+        if norm == banned_norm or norm.startswith(banned_norm + "/"):
+            return True
+    # Block AppData root explicitly
+    if norm.startswith("c:/users/") and ("/appdata" in norm or norm.endswith("/appdata")):
+        return True
+    return False
+
+
 def validate(root: str, candidate: str) -> PathCheckResult:
     root_norm = normalize(root)
     cand_norm = normalize(candidate)
+
+    if is_blacklisted(cand_norm):
+        return PathCheckResult(
+            ok=False,
+            reason="path is in a protected Windows system directory",
+            resolved=cand_norm,
+        )
 
     if not is_within(root_norm, cand_norm):
         return PathCheckResult(

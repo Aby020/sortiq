@@ -36,6 +36,16 @@ def run_scan(folder_id: str, job_id: str) -> dict:
     deleted = 0
     bytes_scanned = 0
 
+    # Locked / restricted entries are already captured by the walker;
+    # record them in the job journal so the UI can surface them.
+    skipped += stats.skipped
+    if stats.errors:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        for err in stats.errors:
+            logger.info("scan skipped item: %s", err)
+
     for entry in entries:
         job.refresh_from_db(fields=["status"])
         if job.status == "cancelled":
@@ -100,6 +110,8 @@ def run_scan(folder_id: str, job_id: str) -> dict:
         "files_skipped": skipped,
         "files_deleted": deleted,
         "bytes_scanned": bytes_scanned,
+        "locked_or_inaccessible": stats.skipped,
+        "scan_errors": stats.errors,
     }
     job.save(update_fields=["status", "stage_name", "progress_percent", "metrics"])
 

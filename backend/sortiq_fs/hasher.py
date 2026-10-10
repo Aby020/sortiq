@@ -2,6 +2,9 @@
 
 Computes a partial (prefix) hash and a full SHA-256 in bounded stages.
 Pure Python; no Django imports.
+
+Hardening: locked/open Windows files raise ``PermissionError`` or
+``OSError``; callers treat these as skippable instead of crashing.
 """
 
 from __future__ import annotations
