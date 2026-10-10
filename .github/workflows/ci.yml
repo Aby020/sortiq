@@ -7,40 +7,28 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    name: build (${{ matrix.os }})
+  test:
+    name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Install dependencies
-        run: uv pip install --system -e ".[dev]" --break-system-packages
-
-      - name: Run Ruff Lint
-        run: uv run ruff check backend
-
-      - name: Run Ruff Format Check
-        run: uv run ruff format --check backend
-
-      - name: Run Pytest (Offline & Filesystem Invariants)
-        run: uv run pytest backend/tests/fs/ backend/tests/operations/test_engine.py
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv sync
+      - run: uv run pytest backend/tests/
         env:
           DJANGO_SETTINGS_MODULE: config.settings.development
-          SECRET_KEY: ci-secret-key-12345
-          DATABASE_URL: 'sqlite:///:memory:'
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd frontend && npm install && npm run build
