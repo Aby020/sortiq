@@ -10,6 +10,14 @@ Sortiq is an intelligent, secure, offline-first local file management and dedupl
 
 By leveraging a high-performance, in-process Python scanner and a local SQLite database, Sortiq provides actionable insights into your storage layout, identifies duplicate structures with precision, and facilitates safe, non-destructive file cleanup operations directly from your terminal or desktop.
 
+## 🖥️ Interface Preview
+
+<p align="center">
+  <img src="./Screenshot/sortiq.png" alt="Sortiq CLI Dashboard and Scanner" width="800">
+</p>
+
+*Sortiq interactive CLI: Real-time directory indexing, two-phase hash duplicate detection, and safe operations console.*
+
 ## Key Features
 
 *   **⚡ High-Speed Two-Phase Scanner**: Optimized to crawl massive local file trees while ignoring dev bloat (`node_modules`, `.git`, `venv`, `.next`, etc.) and safely auto-pruning broken junction points. It uses a metadata-first approach and computes SHA-256 hashes *only* for files with identical sizes, slashing scanning time.
